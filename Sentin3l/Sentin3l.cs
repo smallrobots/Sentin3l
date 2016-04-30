@@ -36,6 +36,7 @@ using MonoBrickFirmware.Movement;
 using MonoBrickFirmware.Sensors;
 using MonoBrickFirmware.UserInput;
 using SmallRobots.Ev3ControlLib;
+using System;
 using System.Threading;
 
 namespace Smallrobots.Sentin3l
@@ -84,6 +85,16 @@ namespace Smallrobots.Sentin3l
         /// EV3 IR Sensor
         /// </summary>
         public EV3IRSensor irSensor;
+
+        /// <summary>
+        /// Task controlling the left leg
+        /// </summary>
+        public LegMotorControl leftLegMotorControlTask;
+
+        /// <summary>
+        /// Task controlling the right leg
+        /// </summary>
+        public LegMotorControl rightLegMotorControlTask;
         #endregion
 
         #region Constructors
@@ -109,8 +120,24 @@ namespace Smallrobots.Sentin3l
             TaskScheduler.Add(new IRRemoteTask());
             LcdConsole.WriteLine("IRRemoteTask OK");
 
+            // Drive task initialization
             TaskScheduler.Add(new DriveTask());
             LcdConsole.WriteLine("DriveTask OK");
+
+            // Left leg control task
+            LcdConsole.WriteLine("Left Leg init...");
+            leftLegMotorControlTask = new LegMotorControl(leftLegMotor);
+            TaskScheduler.Add(leftLegMotorControlTask);
+            LcdConsole.WriteLine("Left Leg Task OK");
+
+            // Right leg control task
+            rightLegMotorControlTask = new LegMotorControl(rightLegMotor);
+            TaskScheduler.Add(rightLegMotorControlTask);
+            LcdConsole.WriteLine("Right Leg Task OK");
+
+            // Keyboard task
+            TaskScheduler.Add(new KeyboardTask());
+            LcdConsole.WriteLine("Keyboard Task OK");
         }
         #endregion
 
@@ -184,6 +211,8 @@ namespace Smallrobots.Sentin3l
         byte remoteCommand;
 
         bool beaconActivated;
+
+        Direction previousDirection;
         #endregion
 
         #region Constructors
@@ -201,6 +230,9 @@ namespace Smallrobots.Sentin3l
 
             // Set the period
             Period = 100;
+
+            // Previous direction
+            previousDirection = Direction.Stop;
         }
         #endregion
 
@@ -223,36 +255,75 @@ namespace Smallrobots.Sentin3l
             {
                 case 0:
                     ((Sentin3l)robot).direction = Direction.Stop;
-                    LcdConsole.WriteLine("Stop");
+                    if (previousDirection != Direction.Stop)
+                    {
+                        LcdConsole.WriteLine("Stop");
+                        previousDirection = Direction.Stop;
+                        beaconActivated = false;
+                    }
                     break;
                 case 1:
                     ((Sentin3l)robot).direction = Direction.Left_Forward;
-                    LcdConsole.WriteLine("Left_Forward");
+                    if (previousDirection != Direction.Left_Forward)
+                    {
+                        LcdConsole.WriteLine("Left_Forward");
+                        previousDirection = Direction.Left_Forward;
+                        beaconActivated = false;
+                    }                    
                     break;
                 case 3:
                     ((Sentin3l)robot).direction = Direction.Right_Forward;
-                    LcdConsole.WriteLine("Right_Forward");
+                    if (previousDirection != Direction.Right_Forward)
+                    {
+                        LcdConsole.WriteLine("Right_Forward");
+                        previousDirection = Direction.Right_Forward;
+                        beaconActivated = false;
+                    }
                     break;
                 case 5:
                     ((Sentin3l)robot).direction = Direction.Straight_Forward;
-                    LcdConsole.WriteLine("Straight_Forward");
+                    if (previousDirection != Direction.Straight_Forward)
+                    {
+                        LcdConsole.WriteLine("Straight_Forward");
+                        previousDirection = Direction.Straight_Forward;
+                        beaconActivated = false;
+                    }
                     break;
                 case 2:
                     ((Sentin3l)robot).direction = Direction.Left_Backward;
-                    LcdConsole.WriteLine("Left_Backward");
+                    if (previousDirection != Direction.Left_Backward)
+                    {
+                        LcdConsole.WriteLine("Left_Backward");
+                        previousDirection = Direction.Left_Backward;
+                        beaconActivated = false;
+                    }
                     break;
                 case 4:
                     ((Sentin3l)robot).direction = Direction.Right_Backward;
-                    LcdConsole.WriteLine("Right_Backward");
+                    if (previousDirection != Direction.Right_Backward)
+                    {
+                        LcdConsole.WriteLine("Right_Backward");
+                        previousDirection = Direction.Right_Backward;
+                        beaconActivated = false;
+                    }
                     break;
                 case 8:
                     ((Sentin3l)robot).direction = Direction.Straight_Backward;
-                    LcdConsole.WriteLine("Straight_Backward");
+                    if (previousDirection != Direction.Straight_Backward)
+                    {
+                        LcdConsole.WriteLine("Straight_Backward");
+                        previousDirection = Direction.Straight_Backward;
+                        beaconActivated = false;
+                    }
                     break;
                 case 9:
                     ((Sentin3l)robot).direction = Direction.Beacon_ON;
-                    LcdConsole.WriteLine("Beacon_ON");
-                    beaconActivated = true;
+                    if (previousDirection != Direction.Beacon_ON)
+                    {
+                        LcdConsole.WriteLine("Beacon_ON");
+                        previousDirection = Direction.Beacon_ON;
+                        beaconActivated = true;
+                    }                   
                     break;
                 default:
                     ((Sentin3l)robot).direction = Direction.Stop;
@@ -269,6 +340,8 @@ namespace Smallrobots.Sentin3l
     {
         #region Fields
         Direction previousDirection;
+        int leftLegSp;
+        int rightLegSp;
         #endregion
 
         #region Constructors
@@ -279,6 +352,9 @@ namespace Smallrobots.Sentin3l
 
             // Set the Period
             Period = 100;
+
+            leftLegSp = 0;
+            rightLegSp = 0;
         }
         #endregion
 
@@ -299,8 +375,6 @@ namespace Smallrobots.Sentin3l
                 Buttons.LedPattern(1);
             }
 
-            sbyte fullPower = 50;
-            sbyte turnPower = 25;
 
             // Move the Formula Ev3
             switch (((Sentin3l)robot).direction)
@@ -308,37 +382,60 @@ namespace Smallrobots.Sentin3l
                 case Direction.Beacon_ON:
                     // Read the beacon distance and location
                     break;
-                case Direction.Straight_Forward:
+                case Direction.Stop:
                     if (previousDirection != Direction.Straight_Forward)
                     {
-                        previousDirection = Direction.Straight_Forward;
-                        ((Sentin3l)robot).leftLegMotor.SetPower(fullPower);
-                        ((Sentin3l)robot).rightLegMotor.SetPower(fullPower);
+                        ((Sentin3l)robot).leftLegMotorControlTask.SetPoint = leftLegSp;
+                        ((Sentin3l)robot).rightLegMotorControlTask.SetPoint = rightLegSp;
                     }
+                    break;
+                case Direction.Straight_Forward:
+                    if (
+                        (Math.Abs(((Sentin3l)robot).leftLegMotor.GetTachoCount() - leftLegSp) < 10) &&
+                        (Math.Abs(((Sentin3l)robot).rightLegMotor.GetTachoCount() - rightLegSp) < 10)
+                        )
+                    {
+                        leftLegSp = leftLegSp + 180;
+                        rightLegSp = rightLegSp + 180;
+                    }
+                    ((Sentin3l)robot).leftLegMotorControlTask.SetPoint = leftLegSp;
+                    ((Sentin3l)robot).rightLegMotorControlTask.SetPoint = rightLegSp;
                     break;
                 case Direction.Straight_Backward:
-                    if (previousDirection != Direction.Straight_Backward)
+                    if (
+                        (Math.Abs(((Sentin3l)robot).leftLegMotor.GetTachoCount() - leftLegSp) < 10) &&
+                        (Math.Abs(((Sentin3l)robot).rightLegMotor.GetTachoCount() - rightLegSp) < 10)
+                        )
                     {
-                        previousDirection = Direction.Straight_Backward;
-                        ((Sentin3l)robot).leftLegMotor.SetPower((sbyte)-0);
-                        ((Sentin3l)robot).rightLegMotor.SetPower((sbyte)-0);
+                        leftLegSp = leftLegSp - 180;
+                        rightLegSp = rightLegSp - 180;
                     }
+                    ((Sentin3l)robot).leftLegMotorControlTask.SetPoint = leftLegSp;
+                    ((Sentin3l)robot).rightLegMotorControlTask.SetPoint = rightLegSp;
                     break;
                 case Direction.Left_Forward:
-                    if (previousDirection != Direction.Left_Forward)
+                    if (
+                        (Math.Abs(((Sentin3l)robot).leftLegMotor.GetTachoCount() - leftLegSp) < 10) &&
+                        (Math.Abs(((Sentin3l)robot).rightLegMotor.GetTachoCount() - rightLegSp) < 10)
+                        )
                     {
-                        previousDirection = Direction.Left_Forward;
-                        ((Sentin3l)robot).leftLegMotor.SetPower((sbyte)turnPower);
-                        ((Sentin3l)robot).rightLegMotor.SetPower((sbyte)0);
+                        leftLegSp = leftLegSp + 180;
+                        rightLegSp = rightLegSp - 180;
                     }
+                    ((Sentin3l)robot).leftLegMotorControlTask.SetPoint = leftLegSp;
+                    ((Sentin3l)robot).rightLegMotorControlTask.SetPoint = rightLegSp;
                     break;
                 case Direction.Right_Forward:
-                    if (previousDirection != Direction.Right_Forward)
+                    if (
+                        (Math.Abs(((Sentin3l)robot).leftLegMotor.GetTachoCount() - leftLegSp) < 10) &&
+                        (Math.Abs(((Sentin3l)robot).rightLegMotor.GetTachoCount() - rightLegSp) < 10)
+                        )
                     {
-                        previousDirection = Direction.Right_Forward;
-                        ((Sentin3l)robot).leftLegMotor.SetPower((sbyte)0);
-                        ((Sentin3l)robot).rightLegMotor.SetPower((sbyte)turnPower);
+                        leftLegSp = leftLegSp - 180;
+                        rightLegSp = rightLegSp + 180;
                     }
+                    ((Sentin3l)robot).leftLegMotorControlTask.SetPoint = leftLegSp;
+                    ((Sentin3l)robot).rightLegMotorControlTask.SetPoint = rightLegSp;
                     break;
                 case Direction.Left_Backward:
                     if (previousDirection != Direction.Left_Backward)
@@ -360,6 +457,39 @@ namespace Smallrobots.Sentin3l
                     ((Sentin3l)robot).leftLegMotor.SetPower(0);
                     ((Sentin3l)robot).rightLegMotor.SetPower(0);
                     break;
+            }
+        }
+        #endregion
+    }
+
+    /// <summary>
+    /// Periodic Task that checks for keyboards
+    /// </summary>
+    public class KeyboardTask : PeriodicTask
+    {
+        #region Constrcuctors
+        public KeyboardTask() : base()
+        {
+            // Set the Action
+            Action = OnTimer;
+
+            // Set the period
+            Period = 500;
+        }
+        #endregion
+
+        #region Private methods
+        private void OnTimer(Robot robot)
+        {
+            if (Buttons.ButtonStates.Escape == Buttons.GetKeypress(new CancellationToken(true)))
+            {
+                ((Sentin3l)robot).TaskScheduler.Stop();
+
+                // Shutdown
+                Buttons.LedPattern(0);
+                ((Sentin3l)robot).leftLegMotor.SetPower(0);
+                ((Sentin3l)robot).rightLegMotor.SetPower(0);
+                ((Sentin3l)robot).bodyMotor.SetPower(0);
             }
         }
         #endregion
