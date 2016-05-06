@@ -53,12 +53,18 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="Diagrams\Sentin3l_Diagram.cd" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Ev3ControlLib\SmallRobots.Ev3ControlLib\SmallRobots.Ev3ControlLib.csproj">
       <Project>{a812dcb0-89b9-4b06-ba30-4af2622af339}</Project>
       <Name>SmallRobots.Ev3ControlLib</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Alien_Machine_Gun.wav">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
