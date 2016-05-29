@@ -57,6 +57,7 @@ namespace Smallrobots.Sentin3l
         Right_Backward,
         Beacon_ON
     }
+
     /// <summary>
     /// Sentin3l main class
     /// </summary>
@@ -99,12 +100,12 @@ namespace Smallrobots.Sentin3l
         public EV3ColorSensor colorSensor;
 
         /// <summary>
-        /// Task controlling the left leg
+        /// PID Task controlling the left leg angular position
         /// </summary>
         public LegMotorControl leftLegMotorControlTask;
 
         /// <summary>
-        /// Task controlling the right leg
+        /// PID Task controlling the right leg angular position
         /// </summary>
         public LegMotorControl rightLegMotorControlTask;
         #endregion
@@ -357,8 +358,10 @@ namespace Smallrobots.Sentin3l
     public class DriveTask : PeriodicTask
     {
         #region Fields
-        // Direction previousDirection;
+        // Left leg angular position set point
         int leftLegSp;
+
+        // Right leg angular position set point
         int rightLegSp;
         #endregion
 
@@ -393,7 +396,7 @@ namespace Smallrobots.Sentin3l
                 Buttons.LedPattern(1);
             }
             
-            // Move the Formula Ev3
+            // Move the Sentin3l
             // If the Legs have reached their previous set point
             if (
                     (Math.Abs(((Sentin3l)robot).leftLegMotor.GetTachoCount() - leftLegSp) < 10) &&
@@ -446,30 +449,9 @@ namespace Smallrobots.Sentin3l
             }
 
             // Fire
-            string filename = "";
             if (((Sentin3l)robot).direction == Direction.Beacon_ON)
             {
                 ((Sentin3l)robot).bodyMotor.SetPower(100);
-                ////((Sentin3l)robot).speaker.Beep(100);
-                //try
-                //{
-                //    filename = "/home/root/apps/Sentin3l/Alien_Machine_Gun.wav";
-                //    if (File.Exists(filename))
-                //    {
-                //        //((Sentin3l)robot).speaker.PlaySoundFile(filename);
-                //        ((Sentin3l)robot).speaker.Buzz();
-                //    }
-                //    else
-                //    {
-                //        LcdConsole.WriteLine("FIle Not Found");
-                //    }
-                //}
-                //catch (Exception e)
-                //{
-                //    LcdConsole.WriteLine("Failed to play " + filename);
-                //    LcdConsole.WriteLine("Exception" + e.Message);
-                //    LcdConsole.WriteLine("Stack trace " + e.StackTrace);
-                //}
             }
             else
             {
